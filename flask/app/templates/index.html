@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Hello, {{user.name}}.</h1>
+    {% for dma in dmas %}
+    <p>DMA number {{dma.number}}: ({{dma.name}}) {{dma.markets.stations}}</p>
+    {% endfor %}
+{% endblock %}
+</body>
+</html>
