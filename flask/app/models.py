@@ -10,6 +10,18 @@ class User(db.Model):
     role = db.Column(db.SmallInteger, default=ROLE_USER)
     watching = db.relationship('Watcher', backref='watched',lazy='dynamic')
 
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return unicode(self.id)  # DB-generated unique id
+
     def __repr__(self):
         return '<User %r>' % self.name
 
@@ -30,7 +42,7 @@ class Watcher(db.Model):
     date_added = db.Column(db.Date)
 
     def __repr__(self):
-        return '<Watcher %r by %r>' % (self.market, self.watch)
+        return '<Watcher {0} by {1}>'.format(self.market, self.watch)
 
 
 class AdBuys(db.Model):
@@ -51,8 +63,5 @@ class AdBuys(db.Model):
     contract_number = db.Column(db.Integer)
 
     def __repr__(self):
-        return '<AdBuy: %s; %s; %s; %s; %s; %s; %s; %s; %s; %s; %s; %s; %s; %s; %s>' % \
-        (self.id, self.station, self.file_upload_date, self.contract_start_date, self.contract_end_date,\
-         self.tv_market, self.tv_market_id, self.ad_type, self.fcc_folder, self.fcc_file_name, self.is_invalid,\
-         self.is_invoice, self.total_spent_raw, self.num_spots_raw, self.contract_number)
+        return '<AdBuy: {0}; {1}; {2}>'.format(self.id, self.station, self.tv_market)
 

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+<!-- {% extends 'base.html' %}
 {% block content %}
     <h1>Hello, {{user.name}}.</h1>
     {% for dma in dmas %}
@@ -6,4 +6,16 @@
     {% endfor %}
 {% endblock %}
 </body>
-</html>
+</html> -->
+
+{% extends 'base.html' %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block title %}TV Ad Buy Monitor{% endblock %}
+
+{% block page_content %}
+<div class='page-header'>
+    <h1>Hello, {% if name %}{{ name }}{% else %}stranger{% endif %}.</h1>
+</div>
+{{ wtf.quick_form(form) }}
+{% endblock %}

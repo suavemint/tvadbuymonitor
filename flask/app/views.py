@@ -1,11 +1,24 @@
-from app import app
-from flask import render_template, flash, redirect
-from forms import LoginForm
+from app import app, db
+from flask import render_template, flash, redirect, session, url_for, request, g
+# from flask.ext.login import login_user, logout_user, current_user, login_required
+from forms import NameForm
+from models import User, ROLE_USER, ROLE_ADMIN
+
+## Notes to self:
+## 1. The app.config dict is a general-purpose place to store configuration variables used by the framework,
+## + the extensions, or the application itself.
 
 @app.route('/')
-@app.route('/index')
+# @app.route('/index')
+# @login_required
 def index():
-    user = {'name':'James'}  # Mock user
+    form = NameForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(name=form.name.data).first()
+        if user is None:
+            user = User(name = form.name.data, email=form.email.data, market)
+            db.session.add(user)
+    # user = g.user  # Added user to the g object in before_request func. (far below)
 
     # Mock markets data; these will be used as a starting point
     # + for each users' comparisons for new ad data and alerts
@@ -23,25 +36,26 @@ def index():
                 'body':'Lincoln data'
             }]  # Fake array of DMAs / markets
 
-    return render_template('index.html',
-                            title = 'Index',
-                            user =  user,
-                            dmas = dmas)
-    # return '''
-    # <html><head><title>Test page</title></head>
-    # <body>
-    #     <h1> Hello, ''' + user['name'] + ''' </h1>
-    # </body>
-    # </html>
-    # '''
+    # What we want is a list of users and their subscriptions (so, two text fields,
+    # + one for user name and one for markets followed), with a blank one for new
+    # + email addresses and/or subscriptions. This blank one will allow for creation.
 
-@app.route('/login', methods=['GET','POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        flash('DEBUGGING OUTPUT: Login requested for OpenID="' + form.openid.data + '", remember_me=' + str(form.remember_me.data))
-        return redirect('/index')
-    return render_template('login.html',
-                            title = 'Sign In',
-                            form = form,
-                            providers = app.config['OPENID_PROVIDERS'])
+    # users = [{'name':'James', 'email':'james@0ptimus.com'},
+             # {'name':'Scott', 'email':'scott@0ptimus.com'}]
+
+    ## Super testing of user-db storage -- FIXME
+    james = User(name='James', email='james@0ptimus.com', role=ROLE_USER)
+    # scott = models.User(name='Scott', email='scott@0ptimus.com', role=modles.ROLE_USER)
+
+    ## Add me to db.session, for committing (adding a new row).
+    ## NB: To add more than one row at once, use db.session.add_all([list of objects]).
+    if james not in User.query().all():
+        db.session.add(james)
+        db.session.commit()
+
+
+    return render_template('index.html',
+                            title = 'Home',
+                            user =  james,  ### FIXME
+                            dmas = dmas)
+
