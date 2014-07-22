@@ -6,8 +6,8 @@ from wtforms.validators import Required
 #     openid = TextField('openid', validators=[Required()])
 #     remember_me = BooleanField('remember_me', default=False)
 
-class NameForm(Form):
+class QueryForm(Form):
     name = StringField('Name', validators=[Required()])
     email = StringField('Email', validators=[Required()])
-    market = StringField('Market', validators=[Required()])
+    markets = StringField('Markets', validators=[Required()])
     submit = SubmitField('Submit')

@@ -1,27 +1,14 @@
 <html>
 <head>
     {% if title %}
-    <title>{{title}} - testing stage</title>
+    <title>{{title}} -- TESTING PHASE</title>
     {% else %}
-    <title>Default title - testing stage</title>
+    <title>TVAdBuyMonitor -- TESTING PHASE</title>
     {% endif %}
 </head>
 <body>
-    <div><a href='{{ url_for('index') }}'>Home</a>
-        {% if g.user.is_authenticated() %}
-        | <a href='{{ url_for('logout') }}'>Logout</a>
-        {% endif %}
-    </div>
-    <hr>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li> {{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+<div>TVAdBuyMonitor</div>
+<!-- Below is the way we insert content into the base.html (through 'extends'): -->
+{% block content %}{% endblock %}
 </body>
 </html>

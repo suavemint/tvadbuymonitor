@@ -1,8 +1,8 @@
 from app import app, db
 from flask import render_template, flash, redirect, session, url_for, request, g
 # from flask.ext.login import login_user, logout_user, current_user, login_required
-from forms import NameForm
-from models import Users, Queries, AdBuys, ROLE_USER, ROLE_ADMIN
+from forms import QueryForm
+from models import Users, Queries, AdBuys
 from wtforms import Form, TextField, validators
 
 ## Notes to self:
@@ -43,40 +43,64 @@ class MonitorRequestForm(Form):
 
 @app.route('/')
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        user = Users.query.filter_by(name=form.name.data).first()
-        if user is None:
-            user = 'FIXME'
-            # user = User(name = form.name.data, email=form.email.data, market)
-            # db.session.add(user)
-    # user = g.user  # Added user to the g object in before_request func. (far below)
+    from datetime import date, timedelta
+    from sqlalchemy import and_, in_, desc
 
-    # Mock markets data; these will be used as a starting point
-    # + for each users' comparisons for new ad data and alerts
-    # + (i.e., I don't necessarily want all of Scott's alerts and v.v.).
+    f = lambda x: date.strftime(x, '%Y-%m-%d')
 
+    today = date.today()
+    yesterday = today - timedelta(1)
 
-    # What we want is a list of users and their subscriptions (so, two text fields,
-    # + one for user name and one for markets followed), with a blank one for new
-    # + email addresses and/or subscriptions. This blank one will allow for creation.
+    form = QueryForm()
 
-    # users = [{'name':'James', 'email':'james@0ptimus.com'},
-             # {'name':'Scott', 'email':'scott@0ptimus.com'}]
+    queries = Queries.query.all()
 
-    ## Super testing of user-db storage -- FIXME
-    # james = User(name='James', email='james@0ptimus.com', role=ROLE_USER)
-    # scott = models.User(name='Scott', email='scott@0ptimus.com', role=modles.ROLE_USER)
+    user_id_j = Users.query.filter(Users.name=='james').first().id
 
-    ## Add me to db.session, for committing (adding a new row).
-    ## NB: To add more than one row at once, use db.session.add_all([list of objects]).
-    if 'james' not in Users.query().all():
-        db.session.add(james)
-        db.session.commit()
+    user_specific_callsigns = Queries.query.filter(Queries.user_id==user_id_j)\
+                                     .first().query_text.split(',')
+    # print user_specific_callsigns
+    # print queries[0]
+    users = Users.query.all()
 
+    # j_callsigns = Queries.query.filter(Query.user_id == Users.query.filter()).filter()
+
+    # j_id = Users.query.filter(Users.name=='james')[0].id
+    # print 15*'='
+    # # print j_id
+    # for x in j_id:
+    #     print x.id
+    # print 15*'='
+
+    # print Queries.query.filter(Queries.user_id = Users.name==)
+
+    test_dict = {}
+
+    for user in users:
+        user_name = user.name
+        user_id = user.id
+        user_specific_queries = Queries.query.filter(Queries.user_id==user_id)
+        for q in user_specific_queries:
+            # test_dict[user_name] =
+            pass
+
+    # adbuys = AdBuys.query.all()
+    # adbuys = AdBuys.query.filter(AdBuys.upload_time > f(yesterday))
+    # adbuys = AdBuys.query.filter(and_(AdBuys.upload_time > f(yesterday),\
+                                      # AdBuys.broadcasters in user_specific_callsigns))
+    # adbuys = AdBuys.query.filter(AdBuys.broadcasters in user_specific_callsigns)
+    adbuys = AdBuys.query.filter(AdBuys.broadcasters.in_(['WKOW','non'])).order_by(desc(AdBuys.updated_at))
+
+    # print 15*'='
+    # print adbuys.first()
+    # print 15*'='
+    test_dict = {u.name:q.query_text.split(',') for u in users for q in Queries.query.filter()}
 
     return render_template('index.html',
                             title = 'Home',
-                            user =  james,  ### FIXME
-                            dmas = dmas)
+                            users = users,
+                            queries =  queries,
+                            adbuys = adbuys,
+                            form = form)
+
 

@@ -1,6 +1,8 @@
 import requests, json, unittest, os, csv
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, Integer
+from sqlalchemy.sql.functions import current_timestamp
+from datetime import date
 
 psql_loc =  'postgresql://postgres:password@localhost:5432/testdb'
 
@@ -27,7 +29,7 @@ class Queries(Base):
     __tablename__ = 'queries'
 
     id = Column(Integer, primary_key=True)
-    query_text = Column(String)
+    query_text = Column(String, unique=True)
     # user_id = relationship(Users, backref=backref('query', order_by=id))
     user_id = Column(Integer, ForeignKey('users.id'))
 
@@ -45,7 +47,7 @@ class AdBuys(Base):
     __tablename__ = 'adbuys'
 
     id = Column(Integer, primary_key=True)
-    adbuy_id = Column('adbuy_id', Integer, primary_key=True)
+    #adbuy_id = Column('adbuy_id', Integer, primary_key=True)
     advertiser = Column('advertiser', String)
     broadcasters = Column('broadcasters', String(50))  # Will need to extract 'broadcasters' key by '','.join(broadcasters)' for broadcasters = resp['objects']['broadcasters']
     candidate_type = Column('candidate_type', String(50))
@@ -66,19 +68,21 @@ class AdBuys(Base):
     updated_at = Column('updated_at', DateTime)
     upload_time = Column('upload_time', String)
     uuid_key = Column('uuid_key', String(40))
-    last_refreshed_datetime = Column('last_refreshed_datetime', DateTime, default='')  # FIXME: add this to be refreshed every time the row is accessed
+    last_refreshed_datetime = Column('last_refreshed_datetime', DateTime, default=current_timestamp(),
+                                                                          onupdate=current_timestamp())  # FIXME: add this to be refreshed every time the row is accessed
                                                                                        # + see http://waynesimmerson.ca/Article/learn-test-driven-development-flask-part-2
                                                                                        # + for detail on how to set this up in SQLA.
+    has_user_been_alerted = Column('has_user_been_alerted', SmallInteger, default=0)
 
     def __repr__(self):
-        print '<AdBuy: adbuy_id={0}, community_state={1}, nielsen_dma_id={2}, num_spots={3}, total_spent={4}>'.format(\
-            self.adbuy_id, self.community_state, self.nielsen_dma_id, self.num_spots, self.total_spent)
+        print '<AdBuy: id={0}, community_state={1}, nielsen_dma_id={2}, num_spots={3}, total_spent={4}>'.format(\
+            self.id, self.community_state, self.nielsen_dma_id, self.num_spots, self.total_spent)
 
-    def __init__(self, adbuy_id, advertiser, broadcasters, candidate_type, community_state, contract_end_date,\
+    def __init__(self, advertiser, broadcasters, candidate_type, community_state, contract_end_date,\
                  contract_number, contract_start_date, description, doc_source, doc_status, nielsen_dma, nielsen_dma_id, \
-                 num_spots, resource_uri, source_file_uri, total_spent, updated_at, upload_time, uuid_key, last_refreshed_datetime):
+                 num_spots, resource_uri, source_file_uri, total_spent, updated_at, upload_time, uuid_key):
         # self.id = id
-        self.adbuy_id = adbuy_id
+        # self.adbuy_id = adbuy_id
         self.advertiser = advertiser
         self.broadcasters = broadcasters
         self.candidate_type = candidate_type
@@ -98,7 +102,9 @@ class AdBuys(Base):
         self.updated_at = updated_at
         self.upload_time = upload_time
         self.uuid_key = uuid_key
-        self.last_refreshed_datetime = last_refreshed_datetime
+        # Two default-valued params:
+        self.last_refreshed_datetime = date.today()
+        self.has_user_been_alerted = 0
 
 ####
 # End table classes
@@ -187,7 +193,8 @@ def create_queries_table():
     # print(test_james)
     # print(15*'=')
     # test_james = Users.query.with_entities(Users.id)
-    test_query = Queries(query_text='from adbuys select * where broadcasters like "KETV%"', user_id=test_james.id)
+    # test_query = Queries(query_text='from adbuys select * where broadcasters like "KETV%"', user_id=test_james.id)
+    test_query = Queries(query_text='KETV,KMT,WOWT,CW,KPTM,KHGI,KLKN,KOLN,KHAS,KNOP,KFXL', user_id=test_james.id)
 
     # And save our test query to the queries table.
     session.add(test_query)
@@ -205,9 +212,8 @@ def create_adbuys_table():
 
     # db = create_engine(psql_loc)
 
-    Session = sessionmaker()
     db = create_engine(psql_loc)
-    Session.configure(bind=db)
+    Session = sessionmaker(bind=db)
     session = Session()
 
     Base.metadata.create_all(db)
@@ -237,7 +243,7 @@ def create_adbuys_table():
       if a is not None:
           for l in a:
             # print 'TESTING'; print 50*'='
-            d = dict(advertiser= l['advertiser'],
+            d = AdBuys(advertiser= l['advertiser'],
                  broadcasters= ','.join(l['broadcasters']),
                  candidate_type= l['candidate_type'],
                  community_state= l['community_state'],

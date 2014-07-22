@@ -1,31 +1,22 @@
 import requests, json, unittest, os, csv
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+from datetime import date
+from sqlalchemy.sql.functions import current_timestamp
 
+psql_loc = 'postgresql://postgres:password@localhost:5432/testdb'  # Shouldn't have to do this with config.py in /app director...
 
 app = Flask(__name__)
-# app.config['SQLALCHEMY_DATABASE_URI'] = psql_loc
+app.config['SQLALCHEMY_DATABASE_URI'] = psql_loc
 db = SQLAlchemy(app)
 
-
-# from app import db
 
 # FIXME: These two vals are defunct ATM:
 ROLE_USER = 0
 ROLE_ADMIN = 1
 
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy import db.Column, db.String, db.Integer
-# from sqlalchemy import db.ForeignKey
-# from sqlalchemy.orm import sessionmaker, relationship, backref
-# from sqlalchemy import db.Column, db.Integer, db.String, db.Date, db.DateTime, Smalldb.Integer
-# from sqlalchemy.orm import sessionmaker, relationship, backref
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-
-# Base = declarative_base()
-
 class Users(db.Model):
+
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -44,8 +35,7 @@ class Queries(db.Model):
     __tablename__ = 'queries'
 
     id = db.Column(db.Integer, primary_key=True)
-    query_text = db.Column(db.String)
-    # user_id = relationship(Users, backref=backref('query', order_by=id))
+    query_text = db.Column(db.String, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     def __repr__(self):
@@ -54,6 +44,8 @@ class Queries(db.Model):
     def __init__(self, query_text, user_id):
         self.query_text = query_text
         self.user_id = user_id
+
+# help(db)
 
 class AdBuys(db.Model):
 
@@ -81,18 +73,20 @@ class AdBuys(db.Model):
     updated_at = db.Column('updated_at', db.DateTime)
     upload_time = db.Column('upload_time', db.Date)
     uuid_key = db.Column('uuid_key', db.String(40))
-    last_refreshed_datetime = db.Column('last_refreshed_datetime', db.DateTime, default='')  # FIXME: add this to be refreshed every time the row is accessed
-                                                                                       # + see http://waynesimmerson.ca/Article/learn-test-driven-development-flask-part-2
-                                                                                       # + for detail on how to set this up in SQLA.
+    last_refreshed_datetime = db.Column('last_refreshed_datetime', db.DateTime, default=current_timestamp(),
+                                                                                onupdate=current_timestamp())  # FIXME: add this to be refreshed every time the row is accessed
+                                                                                                                   # + see http://waynesimmerson.ca/Article/learn-test-driven-development-flask-part-2
+                                                                                                                   # + for detail on how to set this up in SQLA.
+    has_user_been_alerted = db.Column('has_user_been_alerted', db.SmallInteger, default=0)
 
     def __repr__(self):
-        print '<AdBuy: adbuy_id={0}, community_state={1}, nielsen_dma_id={2}, num_spots={3}, total_spent={4}>'.format(\
-            self.adbuy_id, self.community_state, self.nielsen_dma_id, self.num_spots, self.total_spent)
+        print '<AdBuy: id={0}, community_state={1}, nielsen_dma_id={2}, num_spots={3}, total_spent={4}>'.format(\
+            self.id, self.community_state, self.nielsen_dma_id, self.num_spots, self.total_spent)
 
-    def __init__(self, adbuy_id, advertiser, broadcasters, candidate_type, community_state, contract_end_date,\
+    def __init__(self, advertiser, broadcasters, candidate_type, community_state, contract_end_date,\
                  contract_number, contract_start_date, description, doc_source, doc_status, nielsen_dma, nielsen_dma_id, \
-                 num_spots, resource_uri, source_file_uri, total_spent, updated_at, upload_time, uuid_key, last_refreshed_datetime):
-        self.adbuy_id = adbuy_id
+                 num_spots, resource_uri, source_file_uri, total_spent, updated_at, upload_time, uuid_key):
+        # self.adbuy_id = adbuy_id
         self.advertiser = advertiser
         self.broadcasters = broadcasters
         self.candidate_type = candidate_type
@@ -112,7 +106,9 @@ class AdBuys(db.Model):
         self.updated_at = updated_at
         self.upload_time = upload_time
         self.uuid_key = uuid_key
-        self.last_refreshed_datetime = last_refreshed_datetime
+        # Two default-valued params:
+        self.last_refreshed_datetime = date.strftime(date.today(),'%Y-%m-%d')
+        self.has_user_been_alerted = 0
 
 ####
 # End table classes
@@ -208,9 +204,9 @@ def create_adbuys_table():
 
     # db = create_engine(psql_loc)
 
-    Session = sessionmaker()
     db = create_engine(psql_loc)
-    Session.configure(bind=db)
+    Session = sessionmaker(bind=db)
+    # Session.configure(bind=db)
     session = Session()
 
     Base.metadata.create_all(db)
@@ -221,26 +217,14 @@ def create_adbuys_table():
     # i = adbuys.insert()  # <- comment out to save on time, if already existing.
     data = get_adbuys_by_city()
 
-    # db.Column('user_id'), db.Integer, )
-    # print data
-
-
-    # if data is None:
-    #     print 'No data to insert.'
-    #   # import sys;sys.exit(1)
-    #     continue
     pas_data_to_insert = [x for x in data if x != None if data != None]  # FIXME: These two lines are logically redundant...
-
-    # if pas_data_to_insert is not None:
-
-    # print pas_data_to_insert[1]; import sys; sys.exit(1)
 
     for a in pas_data_to_insert:
       # print a
       if a is not None:
           for l in a:
             # print 'TESTING'; print 50*'='
-            d = dict(advertiser= l['advertiser'],
+            d = AdBuys(advertiser= l['advertiser'],
                  broadcasters= ','.join(l['broadcasters']),
                  candidate_type= l['candidate_type'],
                  community_state= l['community_state'],
@@ -258,15 +242,9 @@ def create_adbuys_table():
                  resource_uri= l['resource_uri'],
                  source_file_uri= l['source_file_uri'],
                  total_spent = return_zero_or_int( l['total_spent'] ),
-                 # t = l['total_spent']
-                 # if t not None:
-                    # total_spent = int(t)
-                 # updated_at= datetime.strptime(l['updated_at'].split('.')[0], '%Y-%m-%dT%H:%M:%S'),
                  updated_at = l['updated_at'],
-                 # upload_time= datetime.strptime(l['upload_time'], '%Y-%m-%d'),
                  upload_time= l['upload_time'],
-                 uuid_key= l['uuid_key']
-                 )
+                 uuid_key= l['uuid_key'])
 
             # i.execute(d)
             session.add(d)
@@ -382,8 +360,10 @@ def convert_cities_to_dmas(args):
 
 
     # def get_adbuys_by_city(*args):
-def get_adbuys_by_city(args=''):
+def get_adbuys_by_city(args='',full_refresh=True):
     from csv import reader
+    from requests import get
+    from datetime import date
 
     FCC_URL = 'http://data.fcc.gov/mediabureau/v01/tv/facility/search/'
     PAS_URL = 'http://politicaladsleuth.com/api/v1/politicalfile/?apikey=5f05db9ef8cb4ac1bd4b766c4f29ff64'
@@ -391,27 +371,6 @@ def get_adbuys_by_city(args=''):
     PAS_KEY = '5f05db9ef8cb4ac1bd4b766c4f29ff64'
     # pas_order_by = '&order_by=updated_at'  # NB: prepend a minus (-) to sort in descending (so &order_by=-updated_at)
 
-    # omaha_ne_markets = {'KETV':'ABC',
-    #                     'KMT' :'CSB Omaha',
-    #                     'WOWT':'NBC Omaha',
-    #                     'CW'  :'KXVO',
-    #                     'KPTM':'FOX Omaha'}
-
-    # lincoln_ne_markets = {'KHGI':'ABC Lincoln Hastings',
-    #                       'KLKN':'ABC Lincoln',
-    #                       'KOLN':'CBS',
-    #                       'KHAS':'NBC',
-    #                       'KNOP':'NBC North Platte',
-    #                       'KFXL':'Fox'}
-
-    # test_req_by_callsign = requests.get(FCC_URL+'KETV'+'.json')
-    # ^ The FCC responds with just text, not a response that is directly taken as JSON (.json() method fails).
-    # So explicitly load this db.String into JSON format v.
-    #json_response = json.loads(test_req_by_callsign.text)
-
-    ##
-    ## PAS Start:
-    ##
     pas_params = {
                 'format'              : 'json',
                 'limit'               : 500,
@@ -433,11 +392,15 @@ def get_adbuys_by_city(args=''):
     # for city in dmas:  # TODO: Catch responses that give an empty 'objects' list.
     for city in set(dmas):
         print city,
-        # print('Working on dma {}...'.format(city))
-        #print callsign
-        # dma = convert_cities_to_dmas(city)  #NB: want to keep the DMA as a db.String for search properties.
-        # print(city, dma)
-        pas_call = requests.get(PAS_URL + '&nielsen_dma_id={}'.format(city), params=pas_params)
+        pas_call = ''
+        if full_refresh:
+            pas_call = get(PAS_URL + '&nielsen_dma_id={}'.format(city), params=pas_params)
+        else:
+            refresh_params = dict(format='json',
+                                  limit=500,
+                                  contract_start_date__gte=date.strftime(date.today(),'%Y-%m-%d'),
+                                  order_by='updated_at')
+            pas_call = get(PAS_URL + '&nielsen_dma_id={}'.format(city), params=refresh_params)
         # print('PAS API call: {}'.format(pas_call.text))
         # print('Results of PAS API call: {}'.format(pas_call.text))
         # pas_call = requests.get(PAS_URL+'&q='+callsign, params=pas_params)
@@ -446,6 +409,27 @@ def get_adbuys_by_city(args=''):
           out_dict.append(pas_call['objects'])
           # print(pas_call['objects'])
         else:
-          raise Exception('Cannot load ad-buy data into database. Content: {}'.format(pas_call))
+            continue
+            # raise Exception('Cannot load ad-buy data into database. Content: {}'.format(pas_call))
     return out_dict
 
+
+# Trying to set up an event trigger for when the db is updated:
+from sqlalchemy import event
+
+if False:
+
+    @event.listens_for()
+    def receive_insert(target, value, initiator):
+        '''
+        Parameters:
+        1. target is the object instance receiving the event.
+        2. value is the value being appended. If this listener is registered with retval=True,
+            the listener function must return either this value or a new value which replaces it.
+        3. initiator is an instance of attributes.Event, representing the initiation of the event. It
+            may be modified from its original value by backref handlers in order to control chianed
+            event propagation.
+        '''
+        pass
+
+    event.listen(AdBuys, 'before_insert', before_insert_listener)
