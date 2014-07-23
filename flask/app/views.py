@@ -33,18 +33,11 @@ def send_email(in_query, target):
     server.sendmail(src, target, msg.as_string())
     server.quit()
 
-
-class MonitorRequestForm(Form):
-    username = TextField('Name', [validators.Length(min=1, max=50)])
-    email = TextField('Email', [validators.Length(min=11, max=20)])  # FIXME ??
-    callsigns = TextField('Callsigns')
-
-# ^^ May be obviated by NameForm() below... we'll see.
-
 @app.route('/')
 def index():
     from datetime import date, timedelta
-    from sqlalchemy import and_, in_, desc
+    from sqlalchemy import and_, desc
+    # from sqlalchemy.sql.expression import in_
 
     f = lambda x: date.strftime(x, '%Y-%m-%d')
 
@@ -86,10 +79,11 @@ def index():
 
     # adbuys = AdBuys.query.all()
     # adbuys = AdBuys.query.filter(AdBuys.upload_time > f(yesterday))
-    # adbuys = AdBuys.query.filter(and_(AdBuys.upload_time > f(yesterday),\
-                                      # AdBuys.broadcasters in user_specific_callsigns))
+    adbuys = AdBuys.query.filter(and_(AdBuys.upload_time > f(yesterday),\
+                                      AdBuys.broadcasters.in_(user_specific_callsigns)))
     # adbuys = AdBuys.query.filter(AdBuys.broadcasters in user_specific_callsigns)
-    adbuys = AdBuys.query.filter(AdBuys.broadcasters.in_(['WKOW','non'])).order_by(desc(AdBuys.updated_at))
+
+    # adbuys = AdBuys.query.filter(AdBuys.broadcasters.in_(['WKOW','non'])).order_by(desc(AdBuys.updated_at))
 
     # print 15*'='
     # print adbuys.first()

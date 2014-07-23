@@ -1,5 +1,6 @@
 import os
 
+# The next two lines are for the Flask-WTF extension.
 CSRF_ENABLED = True
 SECRET_KEY = 'this-is-a-secret'
 

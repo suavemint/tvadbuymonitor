@@ -4,57 +4,61 @@
 {% for u in users %}
     {% for q in queries %}
             {% if u.id == q.user_id %}
-                <div>{{u.email}}: {{q.query_text}}</div>
+                <div class=user-q-results>{{u.email}}: {{q.query_text}}</div>
             {% endif %}
     {% endfor %}
 {% endfor %}
-
+<br/><br/>
 <div>
-<table id='adbuy-info'>
-<tr>
-    <th>Uploaded at</th>
-    <th>Updated at</th>
-    <th>Description</th>
-    <th>Advertiser</th>
-    <th>Broadcaster(s)</th>
-    <th>Candidate Type)</th>
-    <th>State</th>
-    <th>Number of Spots</th>
-    <th>Amount Spent ($)</th>
-    <th>Nielsen DMA</th>
-    <th>Nielsen DMA City</th>
-    <th>Contract Start Date</th>
-    <th>Contract End Date</th>
-    <th>Contract Number</th>
-
-
-</tr>
-{% for a in adbuys %}
-    {% if a != None %}
-    <tr>
-        <td>{{a.uploaded_at}}</td>
-        <td>{{a.updated_at}}</td>
-        <td>{{a.description}}</td>
-        <td>{{a.advertiser}}</td>
-        <td>{{a.broadcasters}}</td>
-        <td>{{a.candidate_type}}</td>
-        <td>{{a.community_state}}</td>
-        <td>{{a.num_spots}}</td>
-        <td>{{a.total_spent}}</td>
-        <td>{{a.nielsen_dma_id}}</td>
-        <td>{{a.nielsen_dma}}</td>
-        <td>{{a.contract_start_date}}</td>
-        <td>{{a.contract_end_date}}</td>
-        <td>{{a.contract_number}}</td>
-    </tr>
+    {% if adbuys %}
+        <table id='adbuy-info'>
+        <tr>
+            <th>Uploaded at</th>
+            <th>Updated at</th>
+            <th>Description</th>
+            <th>Advertiser</th>
+            <th>Broadcaster(s)</th>
+            <th>Candidate Type)</th>
+            <th>State</th>
+            <th>Number of Spots</th>
+            <th>Amount Spent ($)</th>
+            <th>Nielsen DMA</th>
+            <th>Nielsen DMA City</th>
+            <th>Contract Start Date</th>
+            <th>Contract End Date</th>
+            <th>Contract Number</th>
+        </tr>
+        {% for a in adbuys %}
+            {% if a != None %}
+            <tr>
+                <td>{{a.uploaded_at}}</td>
+                <td>{{a.updated_at}}</td>
+                <td>{{a.description}}</td>
+                <td>{{a.advertiser}}</td>
+                <td>{{a.broadcasters}}</td>
+                <td>{{a.candidate_type}}</td>
+                <td>{{a.community_state}}</td>
+                <td>{{a.num_spots}}</td>
+                <td>{{a.total_spent}}</td>
+                <td>{{a.nielsen_dma_id}}</td>
+                <td>{{a.nielsen_dma}}</td>
+                <td>{{a.contract_start_date}}</td>
+                <td>{{a.contract_end_date}}</td>
+                <td>{{a.contract_number}}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        </table>
     {% endif %}
-{% endfor %}
-</table>
 
+</div>
+<br/><br/>
+<!-- <div class= -->
 <!-- Trying to do a little text-box work... -->
+{{form.hidden_tag()}}
 {{form.name}}
 {{form.email}}
-{{form.market}}
+{{form.callsigns}}
 {{form.submit}}
 
 <input type='submit' name='submit' value='Reload Ad Buys DB'>
